@@ -1,0 +1,25 @@
+# Godot 4 specific ignores
+.godot/
+*.import
+*.translation
+
+# OS specific ignores
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
+
+# Build files
+/build/
+/dist/
+*.exe
