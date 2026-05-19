@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Ninety Thousand Acres Offline"
-run/main_scene="res://src/scenes/BaseScene.tscn"
+run/main_scene="res://src/scenes/WorldMap.tscn"
 config/features=PackedStringArray("4.6")
 
 [display]

@@ -175,6 +175,122 @@ We have successfully completed **Phase 1 (Data Layer)** and **Phase 2 (Base Cons
 
 ---
 
+## 🔵 Phase 4: World Map & Troop Movement (Part 1)
+
+**Goal:** Create the 100x100 world map, camera system, and basic troop movement logic.
+
+### 📂 Files Created/Updated
+1.  **`src/scripts/WorldMapGenerator.gd`**
+    - **Description:** Procedurally generates a 100x100 grid with random resource tiles.
+    - **Critical Code:**
+      ```gdscript
+      enum TileType { WASTE, WOOD, STONE, FOOD }
+      func determine_tile_type() -> int:
+          var roll = randf()
+          # Returns tile type based on probability
+      ```
+    - **Key Concept:** **Procedural Generation**. Using `randf()` to create a unique map every time.
+
+2.  **`src/scripts/WorldMapCamera.gd`**
+    - **Description:** Handles panning (WASD/Arrows) and zooming (+/-) across the large map.
+    - **Critical Code:**
+      ```gdscript
+      func _ready():
+          global_position = Vector2(50 * 64, 50 * 64) # Center camera
+      ```
+    - **Key Concept:** **Camera2D**. Using `global_position` to move the view and `zoom` to scale it.
+
+3.  **`src/scripts/WorldMapVisualizer.gd`**
+    - **Description:** Renders the map using colored rectangles (placeholders for future sprites).
+    - **Critical Code:**
+      ```gdscript
+      func render_map(width, height):
+          for x in range(width):
+              for y in range(height):
+                  # Create ColorRect for each tile
+      ```
+    - **Key Concept:** **Dynamic Node Creation**. Instantiating nodes at runtime based on data.
+
+4.  **`src/scripts/TroopMovementManager.gd`**
+    - **Description:** Manages troop spawning, movement towards targets, and tile capture.
+    - **Critical Code:**
+      ```gdscript
+      func _move_troop(troop: Dictionary, delta: float) -> bool:
+          var direction = (target - current).normalized()
+          troop.visual.global_position += direction * speed * delta
+      ```
+    - **Key Concept:** **Vector Math**. Using `normalized()` and `delta` for smooth, frame-rate independent movement.
+
+5.  **`src/scripts/WorldMapInput.gd`**
+    - **Description:** Handles mouse clicks to spawn test troops and trigger movement.
+    - **Critical Code:**
+      ```gdscript
+      func _handle_click(click_pos: Vector2):
+          var tile_x = floor(click_pos.x / 64)
+          # Spawn troop targeting clicked tile
+      ```
+    - **Key Concept:** **Coordinate Conversion**. Converting screen pixels to grid coordinates.
+
+### ⚠️ Common Issues & Fixes
+- **Issue:** Camera not moving or zooming.
+  - **Cause:** `Camera2D` not set as `current = true` or script not attached.
+  - **Fix:** Call `make_current()` in `_ready()` and ensure script is on the Camera node.
+- **Issue:** Troops moving too fast or too slow.
+  - **Cause:** Speed value not scaled by `delta` or tile size.
+  - **Fix:** Use `speed * delta` for frame-rate independence. Adjust speed value based on tile size (64px).
+- **Issue:** Clicks not registering on correct tiles.
+  - **Cause:** Not accounting for camera offset or zoom.
+  - **Fix:** Use `event.global_position` (world coordinates) instead of `event.position` (screen coordinates).
+
+### 💡 Tips & Tricks
+- **Testing Movement:** Use a simple click-to-move test (like `WorldMapInput.gd`) to verify movement logic before integrating complex UI.
+- **Visual Feedback:** Change tile colors or add particles when a troop arrives to confirm capture logic is working.
+- **Dictionary Data:** Use Dictionaries to store troop data (`{id, visual, target, speed}`) for easy management in arrays.
+
+---
+
+## 🟢 Phase 4: World Map & Troop Movement (Part 2) - Command & Territory
+
+**Goal:** Implement tactical command flow and dynamic territory visualization.
+
+### 📂 Files Created/Updated
+1.  **`src/scripts/CommandPalette.gd`**
+    - **Description:** A dynamic UI panel that appears when clicking near a troop, offering commands like "Attack".
+    - **Critical Code:**
+      ```gdscript
+      func setup(troop_id: int, tile: Vector2i, screen_pos: Vector2, vp_size: Vector2):
+          position = Vector2(clamp(screen_pos.x, 0, vp_size.x - size.x), ...)
+      ```
+    - **Key Concept:** **Screen vs. World Coordinates**. The palette uses `get_viewport().get_mouse_position()` (screen) while the game uses `camera.get_global_mouse_position()` (world).
+
+2.  **`src/scripts/TerritoryBorder.gd`**
+    - **Description:** Draws a continuous green border around the outer perimeter of all owned tiles. Adjacent owned tiles automatically share borders.
+    - **Critical Code:**
+      ```gdscript
+      func _draw():
+          for tile in owned_tiles:
+              for dir in [RIGHT, DOWN, LEFT, UP]:
+                  if not owned_tiles.has(tile + dir):
+                      draw_line(...) # Draw exposed edge
+      ```
+    - **Key Concept:** **Neighbor Checking**. Instead of drawing a box per tile, we check neighbors. If a neighbor is also owned, that edge is internal and isn't drawn.
+
+3.  **`src/scripts/WorldMapVisualizer.gd`**
+    - **Update:** Added `TerritoryBorder` node and ensured it renders on top (`move_child(border, -1)`).
+
+4.  **`src/scripts/TroopMovementManager.gd`**
+    - **Update:** Added `get_troops_in_range()` to restrict command palette to nearby tiles (simulating movement range).
+    - **Update:** Connected tile capture to `territory_border.add_owned_tile()`.
+
+### 🔮 Future Optimization: TileMap Migration
+**Current State:** We are using one `Node2D` per tile (10,000 nodes for a 100x100 map). This is easy to debug but heavy on performance.
+**Plan:** Migrate to Godot's built-in **`TileMapLayer`** system.
+- **Why?** `TileMap` uses GPU batching to render thousands of tiles in a single draw call.
+- **Asset Upgrade:** We will switch from single flat sprites (`terrain_1.png`) to an **Autotile Sheet** (`Tilemap_color1.png`).
+- **Benefit:** Autotiles automatically handle edges, corners, and elevation (cliffs), creating seamless, professional-looking terrain.
+
+---
+
 ## 🛠️ General Development Tips
 
 ### 1. Godot Editor Features

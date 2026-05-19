@@ -1,0 +1,24 @@
+[gd_scene load_steps=6 format=3 uid="uid://w0rldm4p"]
+
+[ext_resource type="Script" path="res://src/scripts/WorldMapGenerator.gd" id=1]
+[ext_resource type="Script" path="res://src/scripts/WorldMapCamera.gd" id=2]
+[ext_resource type="Script" path="res://src/scripts/WorldMapVisualizer.gd" id=3]
+[ext_resource type="Script" path="res://src/scripts/TroopMovementManager.gd" id=4]
+[ext_resource type="Script" path="res://src/scripts/WorldMapInput.gd" id=5]
+
+[node name="WorldMap" type="Node2D"]
+
+[node name="WorldMapGenerator" type="Node" parent="."]
+script = ExtResource("1")
+
+[node name="WorldMapCamera" type="Camera2D" parent="."]
+script = ExtResource("2")
+
+[node name="WorldMapVisualizer" type="Node2D" parent="."]
+script = ExtResource("3")
+
+[node name="TroopMovementManager" type="Node" parent="."]
+script = ExtResource("4")
+
+[node name="WorldMapInput" type="Node" parent="."]
+script = ExtResource("5")
