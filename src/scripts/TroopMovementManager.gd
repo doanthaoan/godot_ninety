@@ -21,7 +21,7 @@ func _ready():
 	call_deferred("spawn_initial_troop")
 
 func spawn_initial_troop():
-	var start_tile = Vector2i(50, 50)
+	var start_tile = Vector2i(10, 10)
 	spawn_troop(start_tile)
 	if camera:
 		camera.global_position = Vector2(start_tile.x * 64 + 32, start_tile.y * 64 + 32)
@@ -88,11 +88,11 @@ func _process(delta):
 
 func _capture_tile(tile_pos: Vector2i):
 	if map_gen and visualizer:
-		var tile_type = map_gen.get_tile_at(tile_pos)
+		var tile_data = map_gen.get_tile_at(tile_pos)
+		var tile_type = tile_data.type
 		var tile_node = visualizer.get_tile_node(tile_pos)
 		if tile_node:
 			tile_node.set_owned()
-		# Update territory border
 		if visualizer.territory_border:
 			visualizer.territory_border.add_owned_tile(tile_pos)
 		tile_captured.emit(tile_pos, tile_type)

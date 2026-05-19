@@ -12,7 +12,6 @@ var territory_border: TerritoryBorder
 func _ready():
 	print("WorldMapVisualizer: _ready() called.")
 	
-	# Create TerritoryBorder node
 	territory_border = TerritoryBorder.new()
 	territory_border.name = "TerritoryBorder"
 	add_child(territory_border)
@@ -43,15 +42,15 @@ func _build_grid(width, height):
 	
 	for x in range(width):
 		for y in range(height):
-			var type = map_gen.get_tile_at(Vector2i(x, y))
 			var pos = Vector2i(x, y)
+			var tile_data = map_gen.get_tile_at(pos)
 			
 			var tile_instance = tile_scene.instantiate()
 			if tile_instance == null:
 				push_error("WorldMapVisualizer: Failed to instantiate Tile at " + str(pos))
 				continue
 				
-			tile_instance.init(type, pos)
+			tile_instance.init(tile_data.type, tile_data.level, pos)
 			tile_instance.position = Vector2(x * 64, y * 64)
 			
 			add_child(tile_instance)
@@ -60,7 +59,6 @@ func _build_grid(width, height):
 			
 	print("WorldMapVisualizer: Grid built successfully. Created ", tile_count, " tiles.")
 	
-	# Move territory border to the top so it renders above tiles
 	move_child(territory_border, -1)
 	territory_border.queue_redraw()
 
