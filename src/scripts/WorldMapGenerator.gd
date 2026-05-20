@@ -12,14 +12,16 @@ var map_width = 20
 var map_height = 20
 var grid_data = {} # Dictionary mapping Vector2i to WorldTileData
 var level_4_5_count = 0
-var max_level_4_5_per_area = 3 # Max high-level tiles in a 5x5 area
+var max_level_4_5_per_area = 3
 
 class WorldTileData:
 	var type: int
 	var level: int
-	func _init(t: int, l: int):
+	var generation: Dictionary # {wood: x, stone: y, food: z}
+	func _init(t: int, l: int, g: Dictionary):
 		type = t
 		level = l
+		generation = g
 
 func generate_map():
 	grid_data.clear()
@@ -29,18 +31,17 @@ func generate_map():
 		for y in range(map_height):
 			var tile_type = determine_tile_type(Vector2i(x, y))
 			var tile_level = determine_tile_level(tile_type, Vector2i(x, y))
-			grid_data[Vector2i(x, y)] = WorldTileData.new(tile_type, tile_level)
+			var gen_rate = calculate_generation(tile_type, tile_level)
+			grid_data[Vector2i(x, y)] = WorldTileData.new(tile_type, tile_level, gen_rate)
 	
 	map_generated.emit(map_width, map_height)
 	
-	# Debug: Print level distribution
 	var level_counts = {}
 	for data in grid_data.values():
 		level_counts[data.level] = level_counts.get(data.level, 0) + 1
 	
 	print("WorldMapGenerator: Map Generated: ", map_width, "x", map_height)
 	print("WorldMapGenerator: Level Distribution: ", level_counts)
-	print("WorldMapGenerator: Total Level 4-5 tiles: ", level_4_5_count)
 
 func determine_tile_type(_pos: Vector2i) -> int:
 	var roll = randf()
@@ -54,37 +55,23 @@ func determine_tile_type(_pos: Vector2i) -> int:
 		return TileType.FOOD
 
 func determine_tile_level(tile_type: int, pos: Vector2i) -> int:
-	# Waste is always level 1
 	if tile_type == TileType.WASTE:
 		return 1
 	
-	# Check local density of level 4-5 tiles
 	var nearby_high_level = count_nearby_high_level(pos, 5)
-	
-	# Level distribution (weighted random)
 	var roll = randf()
 	var level: int
 	
 	if nearby_high_level >= max_level_4_5_per_area:
-		# Force lower levels if area is saturated
-		if roll < 0.70:
-			level = 2
-		else:
-			level = 3
+		if roll < 0.70: level = 2
+		else: level = 3
 	else:
-		# Normal distribution: L2 > L3 > L4 > L5
-		if roll < 0.50:
-			level = 2
-		elif roll < 0.80:
-			level = 3
-		elif roll < 0.95:
-			level = 4
-		else:
-			level = 5
+		if roll < 0.50: level = 2
+		elif roll < 0.80: level = 3
+		elif roll < 0.95: level = 4
+		else: level = 5
 	
-	if level >= 4:
-		level_4_5_count += 1
-	
+	if level >= 4: level_4_5_count += 1
 	return level
 
 func count_nearby_high_level(pos: Vector2i, radius: int) -> int:
@@ -92,20 +79,32 @@ func count_nearby_high_level(pos: Vector2i, radius: int) -> int:
 	for x in range(pos.x - radius, pos.x + radius + 1):
 		for y in range(pos.y - radius, pos.y + radius + 1):
 			var check_pos = Vector2i(x, y)
-			if check_pos == pos:
-				continue
+			if check_pos == pos: continue
 			var data = grid_data.get(check_pos)
-			if data and data.level >= 4:
-				count += 1
+			if data and data.level >= 4: count += 1
 	return count
 
+func calculate_generation(type: int, level: int) -> Dictionary:
+	# Base generation for all tiles
+	var wood = 1
+	var stone = 1
+	var food = 1
+	
+	# Bonus based on Level and Type
+	var bonus = 0
+	match level:
+		2: bonus = 3
+		3: bonus = 6 # 3 (from Lv2) + 3
+		4: bonus = 9 # 6 (from Lv3) + 3
+		5: bonus = 14 # 9 (from Lv4) + 5
+	
+	match type:
+		TileType.WOOD: wood += bonus
+		TileType.STONE: stone += bonus
+		TileType.FOOD: food += bonus
+		# Waste stays at 1,1,1
+		
+	return {"wood": wood, "stone": stone, "food": food}
+
 func get_tile_at(coords: Vector2i) -> WorldTileData:
-	return grid_data.get(coords, WorldTileData.new(TileType.WASTE, 1))
-
-func get_tile_type_at(coords: Vector2i) -> int:
-	var data = grid_data.get(coords)
-	return data.type if data else TileType.WASTE
-
-func get_tile_level_at(coords: Vector2i) -> int:
-	var data = grid_data.get(coords)
-	return data.level if data else 1
+	return grid_data.get(coords, WorldTileData.new(TileType.WASTE, 1, {"wood":1, "stone":1, "food":1}))
