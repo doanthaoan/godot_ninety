@@ -7,12 +7,14 @@ class_name WorldMapInput
 @onready var camera: Camera2D = get_node("../WorldMapCamera")
 @onready var visualizer: WorldMapVisualizer = get_node("../WorldMapVisualizer")
 @onready var building_manager: BuildingManager = get_node_or_null("../BuildingManager")
+@onready var resource_manager: ResourceManager = get_node_or_null("../ResourceManager")
 
 var ui_layer: CanvasLayer
 var active_panel: Control = null
 var management_panel: TroopsMovingManagementPanel
 var tile_command_panel: TileCommandPanel
 var troop_select_panel: TroopSelectPanel
+var resource_hud
 
 var pending_target: Vector2i = Vector2i.ZERO
 var pending_is_attack: bool = false
@@ -44,6 +46,11 @@ func _ready():
 	troop_select_panel.closed.connect(_on_panel_closed)
 	ui_layer.add_child(troop_select_panel)
 	troop_select_panel.visible = false
+	
+	# Resource HUD
+	resource_hud = ResourceHUD.new()
+	resource_hud.init(resource_manager)
+	ui_layer.add_child(resource_hud)
 
 # Use _unhandled_input so UI clicks don't trigger map logic
 func _unhandled_input(event):

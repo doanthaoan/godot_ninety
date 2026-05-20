@@ -10,20 +10,26 @@ var wood: int = 1000
 var stone: int = 1000
 var food: int = 1000
 
-# Dictionary mapping tile positions to their generation rates
+# Dictionary mapping tile positions to their generation rates (per tick)
 var tile_rates: Dictionary = {}
 
-# Base Production (Simulating 4 Base tiles generating 1/sec each)
-var base_wood_gen: int = 4
-var base_stone_gen: int = 4
-var base_food_gen: int = 4
+# Base Production (Scaled for 6-second tick)
+# 4/sec * 6 = 24 per tick
+var base_wood_gen: int = 24
+var base_stone_gen: int = 24
+var base_food_gen: int = 24
+
+# Current income per tick (for HUD)
+var current_wood_income: int = 0
+var current_stone_income: int = 0
+var current_food_income: int = 0
 
 func _ready():
 	add_to_group("resource_manager")
-	print("ResourceManager: Initialized. Base Gen: ", base_wood_gen, " Wood/sec")
+	print("ResourceManager: Initialized. Base Gen: ", base_wood_gen, " Wood/6s")
 	
 	var timer = Timer.new()
-	timer.wait_time = 1.0
+	timer.wait_time = 6.0 # 6 seconds per tick
 	timer.one_shot = false
 	timer.timeout.connect(_on_production_tick)
 	add_child(timer)
@@ -43,17 +49,32 @@ func _on_production_tick():
 	stone += total_stone
 	food += total_food
 	
-	print("ResourceManager: Tick! Total Income: +", total_wood, " Wood, +", total_stone, " Stone, +", total_food, " Food")
-	print("ResourceManager: Current Balance: Wood=", wood, " Stone=", stone, " Food=", food)
+	current_wood_income = total_wood
+	current_stone_income = total_stone
+	current_food_income = total_food
+	
+	print("ResourceManager: Tick! Income: +", total_wood, " Wood, +", total_stone, " Stone, +", total_food, " Food")
+	print("ResourceManager: Balance: Wood=", wood, " Stone=", stone, " Food=", food)
 	resources_changed.emit()
 
 func add_owned_tile_rate(tile_pos: Vector2i, rate: Dictionary):
-	tile_rates[tile_pos] = rate
-	print("ResourceManager: Added tile ", tile_pos, " generation: ", rate)
+	# Scale tile rates for 6-second tick (original was per second)
+	var scaled_rate = {
+		"wood": rate.get("wood", 0) * 6,
+		"stone": rate.get("stone", 0) * 6,
+		"food": rate.get("food", 0) * 6
+	}
+	tile_rates[tile_pos] = scaled_rate
+	print("ResourceManager: Added tile ", tile_pos, " generation: ", scaled_rate)
 
 func update_tile_rate(tile_pos: Vector2i, new_rate: Dictionary):
-	tile_rates[tile_pos] = new_rate
-	print("ResourceManager: Updated tile ", tile_pos, " generation: ", new_rate)
+	var scaled_rate = {
+		"wood": new_rate.get("wood", 0) * 6,
+		"stone": new_rate.get("stone", 0) * 6,
+		"food": new_rate.get("food", 0) * 6
+	}
+	tile_rates[tile_pos] = scaled_rate
+	print("ResourceManager: Updated tile ", tile_pos, " generation: ", scaled_rate)
 
 func remove_owned_tile_rate(tile_pos: Vector2i):
 	tile_rates.erase(tile_pos)

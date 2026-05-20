@@ -11,8 +11,11 @@ var data_grid: GridContainer
 func init(manager: TroopMovementManager):
 	troop_manager = manager
 	size = Vector2(280, 250) # Wider for table layout
-	position = Vector2(10, 10)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Set position to bottom-right
+	var vp_size = Vector2(ProjectSettings.get_setting("display/window/size/viewport_width"), ProjectSettings.get_setting("display/window/size/viewport_height"))
+	position = Vector2(vp_size.x - size.x - 10, vp_size.y - size.y - 10)
 	
 	var title = Label.new()
 	title.text = "Troop Movement"
