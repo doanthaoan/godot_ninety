@@ -1,43 +1,70 @@
 # ResourceManager.gd
-# This is a "Singleton" - a script that manages global game data
-# In Godot, we attach this to a Node and access it from anywhere
+# Manages global economy and passive resource generation.
 
 extends Node
 class_name ResourceManager
 
-# SIGNALS: These are like "events" that other scripts can listen to
-# When resources change, we emit this signal so the UI can update
 signal resources_changed
 
-# VARIABLES: These store your current resource amounts
-# 'var' declares a variable, ': int' means it must be a whole number
 var wood: int = 1000
 var stone: int = 1000
 var food: int = 1000
 
-# FUNCTIONS: These are actions the ResourceManager can perform
+# Dictionary mapping tile positions to their generation rates
+var tile_rates: Dictionary = {}
 
-# Add resources to your stockpile
-# 'type' is a String (text), 'amount' is an integer
-func add_resource(type: String, amount: int) -> void:
-	# 'match' is like a switch statement - it checks the value of 'type'
-	match type.to_lower(): # to_lower() converts "Wood" to "wood" for consistency
-		"wood": wood += amount
-		"stone": stone += amount
-		"food": food += amount
+# Base Production (Simulating 4 Base tiles generating 1/sec each)
+var base_wood_gen: int = 4
+var base_stone_gen: int = 4
+var base_food_gen: int = 4
+
+func _ready():
+	add_to_group("resource_manager")
+	print("ResourceManager: Initialized. Base Gen: ", base_wood_gen, " Wood/sec")
 	
-	# Emit the signal to notify other scripts that resources changed
+	var timer = Timer.new()
+	timer.wait_time = 1.0
+	timer.one_shot = false
+	timer.timeout.connect(_on_production_tick)
+	add_child(timer)
+	timer.start()
+
+func _on_production_tick():
+	var total_wood = base_wood_gen
+	var total_stone = base_stone_gen
+	var total_food = base_food_gen
+	
+	for rate in tile_rates.values():
+		total_wood += rate.get("wood", 0)
+		total_stone += rate.get("stone", 0)
+		total_food += rate.get("food", 0)
+		
+	wood += total_wood
+	stone += total_stone
+	food += total_food
+	
+	print("ResourceManager: Tick! Total Income: +", total_wood, " Wood, +", total_stone, " Stone, +", total_food, " Food")
+	print("ResourceManager: Current Balance: Wood=", wood, " Stone=", stone, " Food=", food)
 	resources_changed.emit()
 
-# Spend resources (returns true if successful, false if not enough)
-# '-> bool' means this function returns a true/false value
+func add_owned_tile_rate(tile_pos: Vector2i, rate: Dictionary):
+	tile_rates[tile_pos] = rate
+	print("ResourceManager: Added tile ", tile_pos, " generation: ", rate)
+
+func update_tile_rate(tile_pos: Vector2i, new_rate: Dictionary):
+	tile_rates[tile_pos] = new_rate
+	print("ResourceManager: Updated tile ", tile_pos, " generation: ", new_rate)
+
+func remove_owned_tile_rate(tile_pos: Vector2i):
+	tile_rates.erase(tile_pos)
+
 func spend_resource(type: String, amount: int) -> bool:
-	match type.to_lower():
+	match type:
 		"wood":
-			if wood >= amount: # Check if we have enough
+			if wood >= amount:
 				wood -= amount
 				resources_changed.emit()
-				return true # Success!
+				return true
 		"stone":
 			if stone >= amount:
 				stone -= amount
@@ -48,10 +75,11 @@ func spend_resource(type: String, amount: int) -> bool:
 				food -= amount
 				resources_changed.emit()
 				return true
-	
-	return false # Not enough resources
+	return false
 
-# Get all resources as a Dictionary (key-value pairs)
-# '-> Dictionary' means this function returns a Dictionary
-func get_balance() -> Dictionary:
-	return {"wood": wood, "stone": stone, "food": food}
+func get_resource(type: String) -> int:
+	match type:
+		"wood": return wood
+		"stone": return stone
+		"food": return food
+	return 0
