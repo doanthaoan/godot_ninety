@@ -249,45 +249,44 @@ We have successfully completed **Phase 1 (Data Layer)** and **Phase 2 (Base Cons
 
 ---
 
-## 🟢 Phase 4: World Map & Troop Movement (Part 2) - Command & Territory
+##  Phase 4: World Map & Troop Movement (Part 3) - Tile Levels & Command System
 
-**Goal:** Implement tactical command flow and dynamic territory visualization.
+**Goal:** Implement tile levels, resource density, and advanced troop command UI.
 
-### 📂 Files Created/Updated
-1.  **`src/scripts/CommandPalette.gd`**
-    - **Description:** A dynamic UI panel that appears when clicking near a troop, offering commands like "Attack".
-    - **Critical Code:**
-      ```gdscript
-      func setup(troop_id: int, tile: Vector2i, screen_pos: Vector2, vp_size: Vector2):
-          position = Vector2(clamp(screen_pos.x, 0, vp_size.x - size.x), ...)
-      ```
-    - **Key Concept:** **Screen vs. World Coordinates**. The palette uses `get_viewport().get_mouse_position()` (screen) while the game uses `camera.get_global_mouse_position()` (world).
+###  Files Created/Updated
+1.  **`src/scripts/WorldMapGenerator.gd`**
+    - **Update:** Added `WorldTileData` class to store type + level per tile.
+    - **Level System:** Waste=1, Resources=2-5. Weighted distribution (L2 > L3 > L4 > L5).
+    - **Clustering Limit:** Max 3 high-level tiles (L4-5) per 5x5 area to prevent resource hoarding.
+    - **Debug Output:** Prints level distribution after generation.
 
-2.  **`src/scripts/TerritoryBorder.gd`**
-    - **Description:** Draws a continuous green border around the outer perimeter of all owned tiles. Adjacent owned tiles automatically share borders.
-    - **Critical Code:**
-      ```gdscript
-      func _draw():
-          for tile in owned_tiles:
-              for dir in [RIGHT, DOWN, LEFT, UP]:
-                  if not owned_tiles.has(tile + dir):
-                      draw_line(...) # Draw exposed edge
-      ```
-    - **Key Concept:** **Neighbor Checking**. Instead of drawing a box per tile, we check neighbors. If a neighbor is also owned, that edge is internal and isn't drawn.
+2.  **`src/scripts/Tile.gd`**
+    - **Update:** Integrated `resource_lv1_5.png` sprite sheet with region mapping for all levels.
+    - **Building Overlay:** Added `building_overlay` Sprite2D (hidden) ready for Sawmill, Farm, Quarry, etc.
 
-3.  **`src/scripts/WorldMapVisualizer.gd`**
-    - **Update:** Added `TerritoryBorder` node and ensured it renders on top (`move_child(border, -1)`).
+3.  **`src/scripts/TroopCommandPanel.gd`**
+    - **New:** Replaces `CommandPalette.gd`. Displays target coordinates, distance, estimated time, and context-aware action button ("Attack" vs "Move").
+    - **Key Concept:** **Contextual UI**. Button text and logic change based on tile ownership.
 
 4.  **`src/scripts/TroopMovementManager.gd`**
-    - **Update:** Added `get_troops_in_range()` to restrict command palette to nearby tiles (simulating movement range).
-    - **Update:** Connected tile capture to `territory_border.add_owned_tile()`.
+    - **Update:** Added `get_distance_in_tiles()` and `calculate_movement_time()` for accurate ETA.
+    - **Update:** Removed movement range restriction. Troops can now traverse the entire map.
+    - **Update:** Added `BASE_SPEED` constant for consistent movement calculation.
 
-### 🔮 Future Optimization: TileMap Migration
-**Current State:** We are using one `Node2D` per tile (10,000 nodes for a 100x100 map). This is easy to debug but heavy on performance.
-**Plan:** Migrate to Godot's built-in **`TileMapLayer`** system.
-- **Why?** `TileMap` uses GPU batching to render thousands of tiles in a single draw call.
-- **Asset Upgrade:** We will switch from single flat sprites (`terrain_1.png`) to an **Autotile Sheet** (`Tilemap_color1.png`).
-- **Benefit:** Autotiles automatically handle edges, corners, and elevation (cliffs), creating seamless, professional-looking terrain.
+5.  **`src/scripts/WorldMapInput.gd`**
+    - **Update:** Removed `get_troops_in_range()` check. Now finds nearest available troop globally.
+    - **Update:** Checks tile ownership to determine "Attack" (unowned) vs "Move" (owned).
+    - **Update:** Passes distance and time estimate to `TroopCommandPanel`.
+    - **Update:** Instantiates `TroopsMovingManagementPanel` on `_ready()` for real-time tracking.
+
+6.  **`src/scripts/TroopsMovingManagementPanel.gd`**
+    - **New:** Persistent UI panel that lists all moving troops.
+    - **Features:** Displays Troop ID, Start/Destination coordinates, and live ETA countdown.
+    - **Key Concept:** **Dynamic UI Management**. Automatically adds/removes rows based on troop movement state.
+
+### 💡 Tips & Tricks
+- **Manhattan Distance:** Used `abs(dx) + abs(dy)` for grid-based distance calculation, which matches troop movement logic.
+- **Contextual Actions:** The same click interaction produces different commands based on game state (ownership), reducing UI clutter.
 
 ---
 
