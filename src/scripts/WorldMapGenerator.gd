@@ -42,7 +42,7 @@ func generate_map():
 	print("WorldMapGenerator: Level Distribution: ", level_counts)
 	print("WorldMapGenerator: Total Level 4-5 tiles: ", level_4_5_count)
 
-func determine_tile_type(pos: Vector2i) -> int:
+func determine_tile_type(_pos: Vector2i) -> int:
 	var roll = randf()
 	if roll < 0.60:
 		return TileType.WASTE
